@@ -74,61 +74,72 @@ void B2_write_byte_LCD(char data){
     delay(500);
 }
 
+// Function to turn ON backlight with no content
 void B2_turnOnBL_LCD(){
     B2_write_byte_LCD(0x08);
 }
 
+// Function to turn OFF backlight with no content
+void B2_turnOnBL_LCD(){
+    B2_write_byte_LCD(0x00);
+}
+
+// Function to change the cursor's position using it's current position (jump line 0 to 1 enable)
 void B2_changeCursorDisplay_LCD(uint8_t howmany, uint8_t isCursor, uint8_t direction){
-    if(direction){
-        cursorPosition += howmany;
-    }else{
-        cursorPosition -= howmany;
+    if(direction){                                       // If direction is Right, add cursorPosition with how many spaces
+        cursorPosition += howmany;                       // Add value to cursorPosition
+    }else{                                               // If direction is Left, decrease cursorPosition with how many spaces
+        cursorPosition -= howmany;                       // Decrease value to cursorPosition
     }
-    if(cursorPosition > 16){
-        howmany += 22;
+    if(cursorPosition > 16){                             // If reach end of the line, jump to the next one (0 -> 1)
+        howmany += 22;                                   // Add spaces to jump to the next line
         cursorPosition += 22;
     }
-    while(howmany){
+    while(howmany){                                      // Jump Cursor or Display in howmany spaces
         uint8_t Dbyte = (0x01 << 4) | ((((isCursor << 3) & 0x08) | ((direction << 2) & 0x04)) & 0x0C);
-        B2_cursorDisplayShift_Dnibble_LCD(Dbyte);
-        B2_cursorDisplayShift_Dnibble_LCD(Dbyte << 4);
+        B2_cursorDisplayShift_Dnibble_LCD(Dbyte);        // D7 D6 D5 D4
+        B2_cursorDisplayShift_Dnibble_LCD(Dbyte << 4);   // D3 D2 D1 D0
         howmany--;
     }
 }
 
+// Function to help B2_changeCursorDisplay_LCD (send specific nibbles)
 void B2_cursorDisplayShift_Dnibble_LCD(uint8_t Dnibble){
-    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));       
-    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x0C));        // Send first nibble signal
+    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));        
+    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x0C));        // Sending pulse to LCD, writing in the display
     B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));
 }
 
+// Function to write a letter in the LCD display
 void B2_write_letter_LCD(char data){
-    uint8_t ascii_letter = data;                         // Pick ASCII value
+    uint8_t ascii_letter = data;                         // Pick ASCII value of the letter (char)
     B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x09));       
-    B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x0D));        // Send first nibble signal
+    B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x0D));   // Send pulse with masks to send the letter to the display
     B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x09));
     B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x09));
-    B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x0D));  // Send second nibble signal
+    B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x0D));  
     B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x09));       
 }
 
+// Function to write a full string in the LCD display
 void B2_write_string_LCD(char* string, int line){
     int i;
-    switch(line){
+    switch(line){                                        // Select which line
         case 0:
-            B2_write_valid_string_LCD(string);
+            B2_write_valid_string_LCD(string);           // Verify if the string is valid
         break;
         case 1:
             for(i = 0; i < 40; i++){
                 B2_write_letter_LCD(' ');
             }
-            B2_write_valid_string_LCD(string);
+            B2_write_valid_string_LCD(string);           // Verify if the string is valid
         break;
         default:
-            B2_write_error_LCD();
+            B2_write_error_LCD();                        // Every other case will be an error
     }
 }
 
+// Function to write a ERROR! message in the LCD display
 void B2_write_error_LCD(){
     B2_write_letter_LCD('E');
     B2_write_letter_LCD('R');
@@ -138,15 +149,16 @@ void B2_write_error_LCD(){
     B2_write_letter_LCD('!');
 }
 
+// Function to verify if the string is valid and if it is, write it in the LCD display
 void B2_write_valid_string_LCD(char* string){
     int counter = 0;
-    int howmany_letters = strlen(string);
-    if(howmany_letters >= 17){
-        B2_write_error_LCD();
+    int howmany_letters = strlen(string);                // Count length of the string
+    if(howmany_letters >= 17){                           // If size is larger than the 16x2 of the display size, put an error message
+        B2_write_error_LCD();                            // Erro message
         return;
     }else{
-        while(counter != howmany_letters){
-            B2_write_letter_LCD(string[counter]);
+        while(counter != howmany_letters){              // Write string with the string size
+            B2_write_letter_LCD(string[counter]);       // Write letter in the LCD display
             counter++;
         }
     }
