@@ -1,5 +1,6 @@
 #include <msp430.h> 
 #include <stdint.h>
+#include <string.h>
 #include "i2c.c"
 
 // Initialize LCD in 4 bits mode
@@ -54,7 +55,7 @@ void LCD_B2_aux(char data){
 }
 
 // Function to write in the LCD with UCB2 (must config B2 first)
-void B2_write_LCD(char data){
+void B2_write_byte_LCD(char data){
 	UCB2I2CSA = 0x27;
     SetFlag(UCB2CTLW0, UCTR);                            // Set as transmitter
     SetFlag(UCB2CTLW0, UCTXSTT);                         // Init Start
@@ -69,4 +70,54 @@ void B2_write_LCD(char data){
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
     delay(500);
+}
+
+void B2_write_letter_LCD(char data){
+    uint8_t ascii_letter = data;                         // Pick ASCII value
+    B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x09));       
+    B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x0D));        // Send first nibble signal
+    B2_write_byte_LCD(((ascii_letter & 0xf0) | 0x09));
+    B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x09));
+    B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x0D));  // Send second nibble signal
+    B2_write_byte_LCD((((ascii_letter & 0x0f) << 4)| 0x09));       
+}
+
+void B2_write_string_LCD(char* string, int line){
+    int i;
+    switch(line){
+        case 0:
+            B2_write_valid_string_LCD(string);
+        break;
+        case 1:
+            for(i = 0; i < 40; i++){
+                B2_write_letter_LCD(' ');
+            }
+            B2_write_valid_string_LCD(string);
+        break;
+        default:
+            B2_write_error_LCD();
+    }
+}
+
+void B2_write_error_LCD(){
+    B2_write_letter_LCD('E');
+    B2_write_letter_LCD('R');
+    B2_write_letter_LCD('R');
+    B2_write_letter_LCD('O');
+    B2_write_letter_LCD('R');
+    B2_write_letter_LCD('!');
+}
+
+void B2_write_valid_string_LCD(char* string){
+    int counter = 0;
+    int howmany_letters = strlen(string);
+    if(howmany_letters >= 17){
+        B2_write_error_LCD();
+        return;
+    }else{
+        while(counter != howmany_letters){
+            B2_write_letter_LCD(string[counter]);
+            counter++;
+        }
+    }
 }
