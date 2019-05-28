@@ -1,157 +1,128 @@
 #include <msp430.h> 
 #include <stdint.h>
-
-#define SDABIT_B2 BIT0
-#define SCLBIT_B2 BIT1
-
-#define SDA_B2_IN   P7 ## IN
-#define SDA_B2_OUT  P7 ## OUT
-#define SDA_B2_DIR  P7 ## DIR
-#define SDA_B2_REN  P7 ## REN
-#define SDA_B2_SEL0  P7 ## SEL0
-#define SDA_B2_SEL1  P7 ## SEL1
-
-#define SCL_B2_IN   P7 ## IN
-#define SCL_B2_OUT  P7 ## OUT
-#define SCL_B2_DIR  P7 ## DIR
-#define SCL_B2_REN  P7 ## REN
-#define SCL_B2_SEL0  P7 ## SEL0
-#define SCL_B2_SEL1  P7 ## SEL1
-
-#define SDABIT_B1 BIT0
-#define SCLBIT_B1 BIT1
-
-#define SDA_B1_IN   P5 ## IN
-#define SDA_B1_OUT  P5 ## OUT
-#define SDA_B1_DIR  P5 ## DIR
-#define SDA_B1_REN  P5 ## REN
-#define SDA_B1_SEL0  P5 ## SEL0
-#define SDA_B1_SEL1  P5 ## SEL1
-
-#define SCL_B1_IN   P5 ## IN
-#define SCL_B1_OUT  P5 ## OUT
-#define SCL_B1_DIR  P5 ## DIR
-#define SCL_B1_REN  P5 ## REN
-#define SCL_B1_SEL0  P5 ## SEL0
-#define SCL_B1_SEL1  P5 ## SEL1
-
-#define BR10K 10
-#define BR50K 50
-#define BR100K 100
-
-#define Tmp_d 2000000
+#include "macros.c"
 
 void delay(long x);
 
-void config_I2C_B2(int isMaster, uint8_t ownAddr, int whichslave){      //SDA = BIT0 --> SCL = BIT1
+// Function to configure UCB2
+void config_I2C_B2(int isMaster, uint8_t ownAddr, int whichslave){
 
-    SDA_B2_SEL0 |=  SDABIT_B2;    // Use dedicated module
-    SDA_B2_SEL1 &=  ~(SDABIT_B2);
-    SDA_B2_REN |=  SDABIT_B2;    // Resistor enable
-    SDA_B2_OUT |=  SDABIT_B2;    // Pull-up
-    SCL_B2_SEL0 |=  SCLBIT_B2;    // Use dedicated module
-    SCL_B2_SEL1 &=  ~(SCLBIT_B2);
-    SCL_B2_REN |=  SCLBIT_B2;    // Resistor enable
-    SCL_B2_OUT |=  SCLBIT_B2;    // Pull-up
+    SetPort(P7, SEL0, 0);                                // Select SDA
+    ClearPort(P7, SEL1, 0);                              // Select SDA
+    SetPort(P7, REN, 0);                                 // Resistor
+    SetPort(P7, OUT, 0);                                 // Pull-up
 
-    UCB2CTLW0 = UCSWRST;    // UCSI B0 em ressete
-    UCB2CTLW0 |= UCSYNC |     //Síncrono
-             UCMODE_3 |     //Modo I2C
-             UCSSEL_2;
-    if(isMaster){
-    	UCB2CTLW0 |= UCMST;
-    	UCB2I2COA0 = ownAddr;
-    }else{
-    	if(whichslave == 1){
-    		UCB2I2COA1 = UCOAEN | ownAddr;
-    	}else if(whichslave == 2){
-    		UCB2I2COA2 = UCOAEN | ownAddr;
-    	}else if(whichslave == 3){
-    		UCB2I2COA3 = UCOAEN | ownAddr;
+    SetPort(P7, SEL0, 1);                                // Select SCL
+    ClearPort(P7, SEL1, 1);                              // Select SCL   
+    SetPort(P7, REN, 1);                                 // Resistor
+    SetPort(P7, OUT, 1);                                 // Pull-up
+
+    UCB2CTLW0 = UCSWRST;                                 // B2 set reset
+    SetFlag(UCB2CTLW0, UCSYNC);                          // Sync
+    SetFlag(UCB2CTLW0, UCMODE_3);                        // Mode I2C
+    SetFlag(UCB2CTLW0, UCSSEL_2);                        // SMCLK
+    
+    if(isMaster){                                        // Master case
+        SetFlag(UCB2CTLW0, UCMST);                       // Master Mode
+    	UCB2I2COA0 = ownAddr;                            // Select master's own address
+    }else{                                               // Slave case
+    	if(whichslave == 1){                             // I2COA1
+    		UCB2I2COA1 = UCOAEN | ownAddr;               // Slave enable and put slave's address
+    	}else if(whichslave == 2){                       // I2COA2
+    		UCB2I2COA2 = UCOAEN | ownAddr;               // Slave enable and put slave's address
+    	}else if(whichslave == 3){                       // I2COA3
+    		UCB2I2COA3 = UCOAEN | ownAddr;               // Slave enable and put slave's address
     	}
     }
-    UCB2BRW = BR10K;        // 10 kbps
-    UCB2CTLW0 &= ~(UCSWRST);    //SMCLK
+    UCB2BRW = BR10K;                                     // Select baud-rate
+    ClearFlag(UCB2CTLW0, UCSWRST);                       // B2 clear reset
 }
 
+// Funciton to start transmission between B1(Slave) and B2(Master)
 void B2_start_B1(uint8_t addr){
-	UCB2I2CSA = addr;
-	UCB2CTLW0 |= UCTR |
-    			 UCTXSTT;
+	UCB2I2CSA = addr;                                    // Select slave's address
+    SetFlag(UCB2CTLW0, UCTR);                            // Set as transmitter
+    SetFlag(UCB2CTLW0, UCTXSTT);                         // Init Start
 }
 
-void B2_write_on_B1(char dado){
-    while ( (UCB2IFG & UCTXIFG0) == 0);      //espera TXIFG
-    if ( (UCB2IFG & UCTXIFG0) == UCNACKIFG)  //NACK?
-        while(1);
-    UCB2TXBUF = dado;
-    while ( (UCB2IFG & UCTXIFG0) == 0);      //espera TX
-    UCB2CTLW0 |= UCTXSTP;    //gera STOP
-    while ( (UCB2CTLW0 & UCTXSTP) == UCTXSTP);
-    delay(500);
+// Function to write from B2(Master) to B1(Slave)
+void B2_write_on_B1(char data){
+    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
+    if(CompareFlagEQ(UCB2IFG, UCTXIFG0, UCNACKIFG))      // NACK?
+        while(1);                                        // If NACK do nothing
+    UCB2TXBUF = data;                                    // Data into transmission buffer
+    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
+    SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
+    while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
+    delay(750);
 }
 
-void config_I2C_B1(int isMaster, uint8_t ownAddr, int whichslave){      //SDA = BIT0 --> SCL = BIT1
+// Function to configure UCB1
+void config_I2C_B1(int isMaster, uint8_t ownAddr, int whichslave){
 
-    SDA_B1_SEL0 |=  SDABIT_B1;    // Use dedicated module
-    SDA_B1_SEL1 &=  ~(SDABIT_B1);
-    SDA_B1_REN |=  SDABIT_B1;    // Resistor enable
-    SDA_B1_OUT |=  SDABIT_B1;    // Pull-up
-    SCL_B1_SEL0 |=  SCLBIT_B1;    // Use dedicated module
-    SCL_B1_SEL1 &=  ~(SCLBIT_B1);
-    SCL_B1_REN |=  SCLBIT_B1;    // Resistor enable
-    SCL_B1_OUT |=  SCLBIT_B1;    // Pull-up
+    SetPort(P5, SEL0, 0);                                // Select SDA
+    ClearPort(P5, SEL1, 0);                              // Select SDA
+    SetPort(P5, REN, 0);                                 // Resistor
+    SetPort(P5, OUT, 0);                                 // Pull-up
 
-    UCB1CTLW0 = UCSWRST;    // UCSI B0 em ressete
-    UCB1CTLW0 |= UCSYNC |     //Síncrono
-             UCMODE_3 |     //Modo I2C
-             UCSSEL_2;
-    if(isMaster){
-    	UCB1CTLW0 |= UCMST;
-    	UCB1I2COA0 = ownAddr;
-    }else{
-    	if(whichslave == 1){
-    		UCB1I2COA1 = UCOAEN | ownAddr;
-    	}else if(whichslave == 2){
-    		UCB1I2COA2 = UCOAEN | ownAddr;
-    	}else if(whichslave == 3){
-    		UCB1I2COA3 = UCOAEN | ownAddr;
-    	}
+    SetPort(P5, SEL0, 1);                                // Select SCL
+    ClearPort(P5, SEL1, 1);                              // Select SCL
+    SetPort(P5, REN, 1);                                 // Resistor
+    SetPort(P5, OUT, 1);                                 // Pull-up
+
+    UCB1CTLW0 = UCSWRST;                                 // B1 set reset
+    SetFlag(UCB1CTLW0, UCSYNC);                          // Sync
+    SetFlag(UCB1CTLW0, UCMODE_3);                        // Mode I2C
+    SetFlag(UCB1CTLW0, UCSSEL_2);                        // SMCLK
+    
+    if(isMaster){                                        // Master case
+        SetFlag(UCB1CTLW0, UCMST);                       // Master Mode
+        UCB1I2COA0 = ownAddr;                            // Select master's own address
+    }else{                                               // Slave case
+        if(whichslave == 1){                             // I2COA1
+            UCB1I2COA1 = UCOAEN | ownAddr;               // Slave enable and put slave's address
+        }else if(whichslave == 2){                       // I2COA2
+            UCB1I2COA2 = UCOAEN | ownAddr;               // Slave enable and put slave's address
+        }else if(whichslave == 3){                       // I2COA3
+            UCB1I2COA3 = UCOAEN | ownAddr;               // Slave enable and put slave's address
+        }
     }
-    UCB1BRW = BR100K;        // 10 kbps
-    UCB1CTLW0 &= ~(UCSWRST);    //SMCLK
+    UCB1BRW = BR10K;                                     // Select baud-rate
+    ClearFlag(UCB1CTLW0, UCSWRST);                       // B1 clear reset
 }
 
-// int PCF_B2_read(void){
-//     int dado;
-//     UCB2CTL1 &= ~UCTR;  //Mestre RX
-//     UCB2CTL1 |= UCTXSTT;    //Gerar START
-//     while ( (UCB2CTL1 & UCTXSTT) == UCTXSTT);
-//     UCB2CTL1 |= UCTXSTP;    //Gera STOP + NACK
-//     while ( (UCB2IFG & UCRXIFG) == 0 ); //Espera RX
-//     dado = UCB2RXBUF;
-//     return dado;
-// }
+// Function to read from UCB2(Master)
+int B2_read(void){
+    int data;
+    ClearFlag(UCB2CTLW0, UCTR);                          // Set as receiver 
+    SetFlag(UCB2CTLW0, UCTXSTT);                         // Init Start
+    while(CompareFlagEQ(UCB2CTLW0, UCTXSTT, UCTXSTT));   // Wait Start
+    SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
+    while (CompareFlagEQ(UCB2IFG, UCRXIFG0, 0));         // Wait RXIFG0 (with master at I2COA0) 
+    data = UCB2RXBUF;                                    // Save data
+    return data;                                         // Return data
+}
 
-// Gerar START e STOP para colocar PCF em estado conhecido
-void PCF_B2_STT_STP(uint8_t addr){
-    int x=0;
-    UCB2I2CSA = addr;        //Endereço Escravo
+// Put Slave in a known state
+void B2_STT_STP(uint8_t addr){
+    int x = 0;
+    UCB2I2CSA = addr;                                    // Slave Address
 
-    while (x<5){
-        UCB2CTLW0 |= UCTR    |   //Mestre TX
-                    UCTXSTT;    //Gerar START
-        while ( (UCB2IFG & UCTXIFG0) == 0);  //Esperar TXIFG=1
-        UCB2CTLW0 |= UCTXSTP;                //Gerar STOP
+    while (x < 5){
+        SetFlag(UCB2CTLW0, UCTR);                        // Set as transmitter
+        SetFlag(UCB2CTLW0, UCTXSTT);                     // Init Start
+        while (CompareFlagEQ(UCB2IFG, UCRXIFG0, 0));     // Wait TXIFG0 (with master at I2COA0)
+        SetFlag(UCB2CTLW0, UCTXSTP);                     // Call Stop
         delay(200);
-        if ( (UCB2CTLW0 & UCTXSTP) == 0)   break;   //Esperar STOP
+        if (CompareFlagEQ(UCB2CTLW0, UCTXSTP, 0))
+            break;                                       // Wait Stop
         x++;
     }
-    while ( (UCB2CTLW0 & UCTXSTP) == UCTXSTP);   //I2C Travado (Desligar / Ligar)
+    while (CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));  // I2C Locked Up
 }
 
+// Function to put delay between things
 void delay(long limite){
     volatile long cont=0;
-    while (cont++ < limite) ;
-    P1OUT ^= BIT0;
+    while (cont++ < limite);
 }
