@@ -54,7 +54,7 @@ void B2_write_on_B1(char data){
     while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
-    delay(750);
+    delay(500);
 }
 
 // Function to configure UCB1
@@ -111,11 +111,12 @@ void B2_STT_STP(uint8_t addr){
     while (x < 5){
         SetFlag(UCB2CTLW0, UCTR);                        // Set as transmitter
         SetFlag(UCB2CTLW0, UCTXSTT);                     // Init Start
-        while (CompareFlagEQ(UCB2IFG, UCRXIFG0, 0));     // Wait TXIFG0 (with master at I2COA0)
+        while (CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));     // Wait TXIFG0 (with master at I2COA0)
         SetFlag(UCB2CTLW0, UCTXSTP);                     // Call Stop
         delay(200);
-        if (CompareFlagEQ(UCB2CTLW0, UCTXSTP, 0))
+        if (CompareFlagEQ(UCB2CTLW0, UCTXSTP, 0)){
             break;                                       // Wait Stop
+        }
         x++;
     }
     while (CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));  // I2C Locked Up

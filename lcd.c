@@ -74,7 +74,20 @@ void B2_write_byte_LCD(char data){
     delay(500);
 }
 
+void B2_turnOnBL_LCD(){
+    B2_write_byte_LCD(0x08);
+}
+
 void B2_changeCursorDisplay_LCD(uint8_t howmany, uint8_t isCursor, uint8_t direction){
+    if(direction){
+        cursorPosition += howmany;
+    }else{
+        cursorPosition -= howmany;
+    }
+    if(cursorPosition > 16){
+        howmany += 22;
+        cursorPosition += 22;
+    }
     while(howmany){
         uint8_t Dbyte = (0x01 << 4) | ((((isCursor << 3) & 0x08) | ((direction << 2) & 0x04)) & 0x0C);
         B2_cursorDisplayShift_Dnibble_LCD(Dbyte);
