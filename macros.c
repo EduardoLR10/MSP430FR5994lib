@@ -22,3 +22,11 @@
 #define BIT_E BIT2
 #define BIT_RW BIT1
 #define BIT_RS BIT0
+
+#define MoveCursor 0
+#define MoveDisplay 1
+#define	MoveRight 1
+#define MoveLeft 0
+
+#define Line0 0
+#define Line1 1

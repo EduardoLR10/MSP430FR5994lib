@@ -3,6 +3,8 @@
 #include <string.h>
 #include "i2c.c"
 
+int cursorPosition = 0;
+
 // Initialize LCD in 4 bits mode
 void LCD_B2_inic(uint8_t addr){
 
@@ -70,6 +72,21 @@ void B2_write_byte_LCD(char data){
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
     delay(500);
+}
+
+void B2_changeCursorDisplay_LCD(uint8_t howmany, uint8_t isCursor, uint8_t direction){
+    while(howmany){
+        uint8_t Dbyte = (0x01 << 4) | ((((isCursor << 3) & 0x08) | ((direction << 2) & 0x04)) & 0x0C);
+        B2_cursorDisplayShift_Dnibble_LCD(Dbyte);
+        B2_cursorDisplayShift_Dnibble_LCD(Dbyte << 4);
+        howmany--;
+    }
+}
+
+void B2_cursorDisplayShift_Dnibble_LCD(uint8_t Dnibble){
+    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));       
+    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x0C));        // Send first nibble signal
+    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));
 }
 
 void B2_write_letter_LCD(char data){
