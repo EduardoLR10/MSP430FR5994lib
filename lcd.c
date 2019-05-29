@@ -61,17 +61,22 @@ void B2_write_byte_LCD(char data){
 	UCB2I2CSA = 0x27;
     SetFlag(UCB2CTLW0, UCTR);                            // Set as transmitter
     SetFlag(UCB2CTLW0, UCTXSTT);                         // Init Start
-    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
-    if(CompareFlagEQ(UCB2IFG, UCTXIFG0, UCNACKIFG))      // NACK?
-        while(1);                                        // If NACK do nothing
-    delay(500);
+
+    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0) 
     UCB2TXBUF = data;                                    // Data into transmission buffer
-    delay(500);
-    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
-    delay(500);
+
+    // Wait ACK's cycle
+    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0) && CompareFlagEQ(UCB2IFG, UCNACKIFG, 0));
+
+    if(CompareFlagEQ(UCB2IFG, UCNACKIFG, 1)) {           // NACK?
+        while(1);
+    }
+    
+    while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0) 
+    ClearFlag(UCB2IFG, UCTXIFG0);                        // Clear flag because because we'll be not writing into TXBUF
+
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
-    delay(500);
 }
 
 // Function to turn ON backlight with no content
@@ -80,7 +85,7 @@ void B2_turnOnBL_LCD(){
 }
 
 // Function to turn OFF backlight with no content
-void B2_turnOnBL_LCD(){
+void B2_turnOffBL_LCD(){
     B2_write_byte_LCD(0x00);
 }
 
@@ -92,8 +97,8 @@ void B2_changeCursorDisplay_LCD(uint8_t howmany, uint8_t isCursor, uint8_t direc
         cursorPosition -= howmany;                       // Decrease value to cursorPosition
     }
     if(cursorPosition > 16){                             // If reach end of the line, jump to the next one (0 -> 1)
-        howmany += 22;                                   // Add spaces to jump to the next line
-        cursorPosition += 22;
+        howmany += 24;                                   // Add spaces to jump to the next line
+        cursorPosition += 24;
     }
     while(howmany){                                      // Jump Cursor or Display in howmany spaces
         uint8_t Dbyte = (0x01 << 4) | ((((isCursor << 3) & 0x08) | ((direction << 2) & 0x04)) & 0x0C);
