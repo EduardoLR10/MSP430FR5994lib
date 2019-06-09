@@ -1,6 +1,7 @@
 #include <msp430.h> 
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 #include "i2c.c"
 
 int cursorPosition = 0;
@@ -89,30 +90,55 @@ void B2_turnOffBL_LCD(){
     B2_write_byte_LCD(0x00);
 }
 
-// Function to change the cursor's position using it's current position (jump line 0 to 1 enable)
-void B2_changeCursorDisplay_LCD(uint8_t howmany, uint8_t isCursor, uint8_t direction){
-    if(direction){                                       // If direction is Right, add cursorPosition with how many spaces
-        cursorPosition += howmany;                       // Add value to cursorPosition
-    }else{                                               // If direction is Left, decrease cursorPosition with how many spaces
-        cursorPosition -= howmany;                       // Decrease value to cursorPosition
-    }
-    if(cursorPosition > 16){                             // If reach end of the line, jump to the next one (0 -> 1)
-        howmany += 24;                                   // Add spaces to jump to the next line
-        cursorPosition += 24;
-    }
-    while(howmany){                                      // Jump Cursor or Display in howmany spaces
-        uint8_t Dbyte = (0x01 << 4) | ((((isCursor << 3) & 0x08) | ((direction << 2) & 0x04)) & 0x0C);
-        B2_cursorDisplayShift_Dnibble_LCD(Dbyte);        // D7 D6 D5 D4
-        B2_cursorDisplayShift_Dnibble_LCD(Dbyte << 4);   // D3 D2 D1 D0
-        howmany--;
-    }
+void B2_setCursorPosition_LCD(uint8_t position){
+    B2_write_byte_LCD((((position | 0x80) & 0xf0) | 0x08));        
+    B2_write_byte_LCD((((position | 0x80) & 0xf0) | 0x0C));        // Sending pulse to LCD, writing in the display
+    B2_write_byte_LCD((((position | 0x80) & 0xf0) | 0x08));
+
+    B2_write_byte_LCD((((position << 4) & 0xf0) | 0x08));        
+    B2_write_byte_LCD((((position << 4) & 0xf0) | 0x0C));        // Sending pulse to LCD, writing in the display
+    B2_write_byte_LCD((((position << 4) & 0xf0) | 0x08));
 }
 
-// Function to help B2_changeCursorDisplay_LCD (send specific nibbles)
-void B2_cursorDisplayShift_Dnibble_LCD(uint8_t Dnibble){
-    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));        
-    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x0C));        // Sending pulse to LCD, writing in the display
-    B2_write_byte_LCD(((Dnibble & 0xf0) | 0x08));
+void B2_toFloatValue_LCD(float value){
+    int aux = (value*1000);
+    char thousand, hundred, ten, unity;
+    thousand = (0x30+((aux/1000)%10));
+    hundred = (0x30+((aux/100)%10));
+    ten = (0x30+((aux/10)%10));
+    unity = (0x30+(aux%10));
+    B2_write_letter_LCD(thousand);
+    B2_write_letter_LCD('.');
+    B2_write_letter_LCD(hundred);
+    B2_write_letter_LCD(ten);
+    B2_write_letter_LCD(unity);
+    B2_write_letter_LCD('V');
+}
+
+void B2_toHexValue_LCD(int value){
+    char hex[3] = {'0','0','0'};
+    int temp;
+    int i = 0;
+    if(value != 0){
+        while(value != 0) {
+            temp = value % 16;
+            if( temp < 10){
+                hex[i++] = temp + 48;
+            }else{
+                hex[i++] = temp + 55;
+            }
+            value /= 16;
+        }
+    }
+    B2_write_letter_LCD('0');
+    B2_write_letter_LCD('X');
+    B2_write_letter_LCD(hex[2]);
+    B2_write_letter_LCD(hex[1]);
+    B2_write_letter_LCD(hex[0]);
+}
+
+void B2_goToInit_LCD(){
+    B2_setCursorPosition_LCD(0);
 }
 
 // Function to write a letter in the LCD display
@@ -127,21 +153,8 @@ void B2_write_letter_LCD(char data){
 }
 
 // Function to write a full string in the LCD display
-void B2_write_string_LCD(char* string, int line){
-    int i;
-    switch(line){                                        // Select which line
-        case 0:
-            B2_write_valid_string_LCD(string);           // Verify if the string is valid
-        break;
-        case 1:
-            for(i = 0; i < 40; i++){
-                B2_write_letter_LCD(' ');
-            }
-            B2_write_valid_string_LCD(string);           // Verify if the string is valid
-        break;
-        default:
-            B2_write_error_LCD();                        // Every other case will be an error
-    }
+void B2_write_string_LCD(char* string){
+    B2_write_valid_string_LCD(string);           // Verify if the string is valid
 }
 
 // Function to write a ERROR! message in the LCD display
