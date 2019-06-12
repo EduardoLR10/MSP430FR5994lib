@@ -1,8 +1,5 @@
+#include "i2c.h"
 #include <msp430.h> 
-#include <stdint.h>
-#include "macros.c"
-
-void delay(long x);
 
 // Function to configure UCB2
 void config_I2C_B2(int isMaster, uint8_t ownAddr, int whichslave){
@@ -51,10 +48,12 @@ void B2_write_on_B1(char data){
     if(CompareFlagEQ(UCB2IFG, UCTXIFG0, UCNACKIFG))      // NACK?
         while(1);                                        // If NACK do nothing
     UCB2TXBUF = data;                                    // Data into transmission buffer
+}
+
+void B2_stop_B1(){
     while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
-    delay(500);
 }
 
 // Function to configure UCB1

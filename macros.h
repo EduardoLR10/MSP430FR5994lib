@@ -1,3 +1,5 @@
+#ifndef MACROS_H
+#define MACROS_H
 
 #define CaptureMode(mode) (CAP | (CM_##mode) | CCIS_0 | CCIE)
 #define ClearPort(port, type, pin) ((port##type) &= ~(BIT##pin))
@@ -30,3 +32,5 @@
 
 #define Line0 0
 #define Line1 1
+
+#endif // MACROS_H

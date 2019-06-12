@@ -1,4 +1,5 @@
-#include <msp430.h>
+#include "adc.h"
+#include <msp430.h> 
 
 void config_adc(){
     ADC12CTL0  &= ~ADC12ENC;        //Desabilitar para configurar
