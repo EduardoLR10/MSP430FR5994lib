@@ -11,6 +11,7 @@ void LCD_B2_aux(char data);
 void B2_write_byte_LCD(char data);
 void B2_turnOnBL_LCD();
 void B2_turnOffBL_LCD();
+void B2_requestRead_LCD(uint8_t addr);
 void B2_sendPulse_LCD(uint8_t byte, int RS, int RW);
 void B2_setCursorPosition_LCD(uint8_t position);
 void B2_toFloatValue_LCD(float value);
@@ -27,5 +28,7 @@ void B2_write_letter_LCD(char data);
 void B2_write_string_LCD(char* string);
 void B2_write_error_LCD();
 void B2_write_valid_string_LCD(char* string);
+void B2_setCGRAM_LCD(uint8_t addr);
+int B2_busy_LCD();
 
 #endif // LCD_H

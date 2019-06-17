@@ -36,8 +36,8 @@ void LCD_B2_inic(uint8_t addr){
     while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
-    delay(500);
-    B2_SetFunction_LCD(1, 0);
+    delay(50);
+    //B2_SetFunction_LCD(1, 0);
 }
 
 // Auxiliar for LCD's initialization (RS = RW = 0)
@@ -55,9 +55,14 @@ void LCD_B2_aux(char data){
 
 // Function to write in the LCD with UCB2 (must config B2 first)
 void B2_write_byte_LCD(char data){
-	B2_start_B1(0x27);
-    B2_write_on_B1(data);
-    B2_stop_B1();
+	B2_start_Slave(0x27);
+    B2_write_on_Slave(data);
+    B2_stop_Slave();
+    delay(50);
+}
+
+void B2_requestRead_LCD(uint8_t addr){
+    B2_sendPulse_LCD((addr & 0x7F), 0, 1);
 }
 
 // Function to turn ON backlight with no content
@@ -243,7 +248,20 @@ void B2_clearDisplay_LCD(){
 
 // Function to set cursor to initial position
 void B2_goToInit_LCD(){
-    B2_setCursorPosition_LCD(0);
+    B2_sendPulse_LCD(2, 0, 0);
+}
+
+// Function to set CGRAM address
+void B2_setCGRAM_LCD(uint8_t addr){
+    B2_sendPulse(( 0x80 | (0x3F & addr)), 0, 0);
+}
+
+int B2_busy_LCD(){
+    if(B2_read_Slave() & 0x80){
+        return 1;
+    }else{
+        return 0;
+    }
 }
 
 // Function to write a letter in the LCD display

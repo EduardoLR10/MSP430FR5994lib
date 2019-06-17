@@ -36,21 +36,21 @@ void config_I2C_B2(int isMaster, uint8_t ownAddr, int whichslave){
 }
 
 // Funciton to start transmission between B1(Slave) and B2(Master)
-void B2_start_B1(uint8_t addr){
+void B2_start_Slave(uint8_t addr){
 	UCB2I2CSA = addr;                                    // Select slave's address
     SetFlag(UCB2CTLW0, UCTR);                            // Set as transmitter
     SetFlag(UCB2CTLW0, UCTXSTT);                         // Init Start
 }
 
 // Function to write from B2(Master) to B1(Slave)
-void B2_write_on_B1(char data){
+void B2_write_on_Slave(char data){
     while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
     if(CompareFlagEQ(UCB2IFG, UCTXIFG0, UCNACKIFG))      // NACK?
         while(1);                                        // If NACK do nothing
     UCB2TXBUF = data;                                    // Data into transmission buffer
 }
 
-void B2_stop_B1(){
+void B2_stop_Slave(){
     while(CompareFlagEQ(UCB2IFG, UCTXIFG0, 0));          // Wait TXIFG0 (with master at I2COA0)
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while(CompareFlagEQ(UCB2CTLW0, UCTXSTP, UCTXSTP));   // Wait Stop
@@ -91,7 +91,7 @@ void config_I2C_B1(int isMaster, uint8_t ownAddr, int whichslave){
 }
 
 // Function to read from UCB2(Master)
-int B2_read(void){
+int B2_read_Slave(void){
     int data;
     ClearFlag(UCB2CTLW0, UCTR);                          // Set as receiver 
     SetFlag(UCB2CTLW0, UCTXSTT);                         // Init Start
@@ -99,6 +99,7 @@ int B2_read(void){
     SetFlag(UCB2CTLW0, UCTXSTP);                         // Call Stop
     while (CompareFlagEQ(UCB2IFG, UCRXIFG0, 0));         // Wait RXIFG0 (with master at I2COA0) 
     data = UCB2RXBUF;                                    // Save data
+    delay(50);
     return data;                                         // Return data
 }
 
