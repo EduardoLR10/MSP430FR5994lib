@@ -16,12 +16,8 @@ void UARTInit_A3(int parity, int isEven, int isMSB, int is2Stops, int mode, int 
 	
 	SetFlag(UCA3CTLW0, UCSSEL__SMCLK);
 
-	SetFlag(UCA3BRW, UCBRF_8);
-	SetFlag(UCA3MCTLW, UCBRS5_H);
-	SetFlag(UCA3MCTLW, UCOS16);
-	ClearFlag(UCA3CTLW0, UCSWRST);
-
-	SetFlag(UCA3IE, UCRXIE);
+	UCA3BRW = 6;
+	UCA3MCTLW = UCBRF_8 | UCOS16;
 
 	// Output PIN
 	SetPort(P6, DIR, 0);
@@ -32,6 +28,10 @@ void UARTInit_A3(int parity, int isEven, int isMSB, int is2Stops, int mode, int 
 	ClearPort(P6, DIR, 1);
 	SetPort(P6, SEL0, 1);
 	ClearPort(P6, SEL1, 1);
+
+	ClearFlag(UCA3CTLW0, UCSWRST);
+
+    SetFlag(UCA3IE, UCRXIE);
 }
 
 void UARTInit_A1(int parity, int isEven, int isMSB, int is2Stops, int mode, int isSync){
@@ -49,22 +49,23 @@ void UARTInit_A1(int parity, int isEven, int isMSB, int is2Stops, int mode, int 
 	
 	SetFlag(UCA1CTLW0, UCSSEL__SMCLK);
 
-	SetFlag(UCA1BRW, UCBRF_8);
-	SetFlag(UCA1MCTLW, UCBRS5_H);
-	SetFlag(UCA1MCTLW, UCOS16);
-	ClearFlag(UCA1CTLW0, UCSWRST);
-
-	SetFlag(UCA1IE, UCRXIE);
+	UCA1BRW = 6;
+	UCA1MCTLW = UCBRF_8 | UCOS16;
 
 	// Output PIN
-	SetPort(P2, DIR, 5);
-	SetPort(P2, SEL0, 5);
-	ClearPort(P2, SEL1, 5);
+    SetPort(P2, DIR, 5);
+    SetPort(P2, SEL0, 5);
+    ClearPort(P2, SEL1, 5);
 
-	// Input PIN
-	ClearPort(P2, DIR, 6);
-	SetPort(P2, SEL0, 6);
-	ClearPort(P2, SEL1, 6);
+    // Input PIN
+    ClearPort(P2, DIR, 6);
+    SetPort(P2, SEL0, 6);
+    ClearPort(P2, SEL1, 6);
+
+	ClearFlag(UCA1CTLW0, UCSWRST);
+    
+    SetFlag(UCA1IE, UCRXIE);
+
 }
 
 void UARTA3_stop(){

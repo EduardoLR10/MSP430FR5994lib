@@ -4,10 +4,10 @@
 void config_adc(){
     ADC12CTL0  &= ~ADC12ENC;        //Desabilitar para configurar
 
-    ADC12CTL0 = ADC12SHT0_3 |       //ADC tempo amostragem ADCMEM[0-7]
+    ADC12CTL0 = ADC12SHT0_1 |       //ADC tempo amostragem ADCMEM[0-7]
                 ADC12ON;            //Ligar ADC
 
-    ADC12CTL1 = ADC12SHS_0       |  // Selecionar ADC12SC
+    ADC12CTL1 = ADC12SHS_1       |  // Selecionar ADC12SC
                 ADC12SHP         |  // S/H usar timer
                 ADC12DIV_0       |  //Clock ADC Divisor = 1
                 ADC12SSEL_0      |  //Clock ADC = SMCLK
@@ -18,17 +18,20 @@ void config_adc(){
     ADC12CTL2 = ADC12RES_2;         // Resolução 12-bit
 
     ADC12MCTL0 = ADC12INCH_2 |       //(P6.0) A0 = Canal 0
+                 ADC12EOS    |
                  ADC12VRSEL_0;      //VR+ = AVCC e VR- = AVSS
 
-    ADC12MCTL1 = ADC12EOS    |      //Fim de sequência
-                 ADC12INCH_3 |       //(P6.0) A0 = Canal 0
-                 ADC12VRSEL_0;      //VR+ = AVCC e VR- = AVSS
+//    ADC12MCTL1 = ADC12EOS    |      //Fim de sequência
+//                 ADC12INCH_3 |       //(P6.0) A0 = Canal 0
+//                 ADC12VRSEL_0;      //VR+ = AVCC e VR- = AVSS
 
-    ADC12IER0 = ADC12IE1;
+    ADC12IER0 = ADC12IE0;
+
+    ADC12CTL0  |= ADC12ENC;
 
     P1SEL0 |= BIT2;
     P1SEL1 |= BIT2;
     
-    P1SEL0 |= BIT3;
-    P1SEL1 |= BIT3;
+//    P1SEL0 |= BIT3;
+//    P1SEL1 |= BIT3;
 }

@@ -100,11 +100,11 @@ void B2_toFloatValue_LCD(float value){
     ten = (0x30+((aux/10)%10));
     unity = (0x30+(aux%10));
     B2_write_letter_LCD(thousand);
-    B2_write_letter_LCD('.');
+    B2_write_letter_LCD(',');
     B2_write_letter_LCD(hundred);
     B2_write_letter_LCD(ten);
-    B2_write_letter_LCD(unity);
-    B2_write_letter_LCD('V');
+    //B2_write_letter_LCD(unity);
+    //B2_write_letter_LCD('V');
 }
 
 // Function to display hexadecimal value (0 < x < 255)
@@ -154,7 +154,7 @@ void B2_toHex12Value_LCD(int value){
         }
     }
     B2_write_letter_LCD('0');
-    B2_write_letter_LCD('X');
+    //B2_write_letter_LCD('X');
     B2_write_letter_LCD(hex[2]);
     B2_write_letter_LCD(hex[1]);
     B2_write_letter_LCD(hex[0]);
